@@ -9,6 +9,7 @@ import { UserInstance } from './user-model';
  */
 export interface GameAttributes extends Attributes {
   status?: Status;
+  code?: string;
   players: UserInstance[];
 }
 
@@ -33,7 +34,7 @@ export enum Status {
  * @param mongoose Mongoose instance
  */
 export default function createModel(container: ServiceContainer, mongoose: Mongoose): Model<GameInstance> {
-  return mongoose.model<GameInstance>('Game', createGameSchema(), 'games');
+  return mongoose.model<GameInstance>('Game', createGameSchema(container), 'games');
 }
 
 /**
@@ -42,12 +43,16 @@ export default function createModel(container: ServiceContainer, mongoose: Mongo
  * @param container Services container
  * @returns Game schema
  */
-function createGameSchema() {
+function createGameSchema(container: ServiceContainer) {
   const schema = new Schema({
     status: {
       type: Schema.Types.Number,
       enum: [Status.WAITING, Status.IN_PROGRESS, Status.FINISHED],
       default: Status.WAITING
+    },
+    code: {
+      type: Schema.Types.String,
+      default: null
     },
     players: {
       type: [{
@@ -55,14 +60,29 @@ function createGameSchema() {
         ref: 'User'
       }],
       validate: {
-        validator: (players: UserInstance[]) => players.length >= 2 && players.length <= 5,
-        message: 'Player count must be between 2 and 5'
+        validator: (players: UserInstance[]) => players.length <= 5,
+        message: 'Too many players (> 5)'
       }
     }
   }, {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+  });
+  schema.pre('save', async function(this: GameInstance, next) {
+    if (this.isNew) {
+      try {
+        const usedCodes = (await container.db.games.find().where('code').ne(null)).map(game => game.code);
+        let code: string;
+        do {
+          code = container.crypto.generateRandomNumeric(6);
+        } while (usedCodes.includes(code));
+        this.code = code;
+      } catch (err) {
+        return next(err);
+      }
+    }
+    return next();
   });
   schema.plugin(mongooseToJson);
   return schema;
