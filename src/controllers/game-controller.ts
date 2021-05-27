@@ -73,9 +73,21 @@ export default class GameController extends Controller {
    */
   public async createHandler(req: Request, res: Response): Promise<Response> {
     try {
-      const game = await this.db.games.create({ players: [req.body.player] });
-      return res.status(201).send({ id: game.id });
+      const user = await this.db.users.findById(req.body.player);
+      if (user == null) {
+        return res.status(404).send(this.container.errors.formatErrors({
+          error: 'not_found',
+          error_description: 'Player not found'
+        }));
+      }
+      const game = await this.db.games.create({ players: [user] });
+      this.container.game.createGame(game, user);
+      return res.status(201).send({ id: game.id, code: game.code });
     } catch (err) {
+      this.logger.error(err);
+      if (err.name === 'ValidationError') {
+        return res.status(400).send(this.container.errors.formatErrors(...this.container.errors.translateMongooseValidationError(err)));
+      }
       return res.status(500).send(this.container.errors.formatServerError());
     }
   }
