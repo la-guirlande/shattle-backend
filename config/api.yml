@@ -1,2 +1,1 @@
-requestSizeLimit: "10mb" # Your request size limit (20mb, 100kb, ...)
 documentationRoute: null # Swagger documentation route (null to disable)
