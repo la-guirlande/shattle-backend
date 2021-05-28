@@ -23,6 +23,8 @@ export interface MapInstance extends MapAttributes, Document {}
 export interface ConfigAttributes {
   width: number;
   height: number;
+  tilewidth: number;
+  tileheight: number;
   layers: ConfigLayerAttributes[];
   tilesets: ConfigTilesetAttributes[];
 }
@@ -140,6 +142,14 @@ function createConfigSubschema() {
     height: {
       type: Schema.Types.Number,
       required: [true, 'Map height is required']
+    },
+    tilewidth: {
+      type: Schema.Types.Number,
+      required: [true, 'Map tile width is required']
+    },
+    tileheight: {
+      type: Schema.Types.Number,
+      required: [true, 'Map tile height is required']
     },
     layers: {
       type: [{
