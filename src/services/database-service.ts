@@ -1,5 +1,6 @@
 import { Model, Mongoose } from 'mongoose';
 import createGameModel, { GameInstance } from '../models/game-model';
+import createMapModel, { MapInstance } from '../models/map-model';
 import createUserModel, { UserInstance } from '../models/user-model';
 import Service from './service';
 import ServiceContainer from './service-container';
@@ -13,6 +14,7 @@ export default class DatabaseService extends Service {
 
   public readonly users: Model<UserInstance>;
   public readonly games: Model<GameInstance>;
+  public readonly maps: Model<MapInstance>;
   private readonly mongoose: Mongoose;
 
   /**
@@ -25,6 +27,7 @@ export default class DatabaseService extends Service {
     this.mongoose = this.createMongoose();
     this.users = createUserModel(container, this.mongoose);
     this.games = createGameModel(container, this.mongoose);
+    this.maps = createMapModel(container, this.mongoose);
   }
 
   /**
