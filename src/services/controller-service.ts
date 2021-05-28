@@ -2,6 +2,7 @@ import { Application } from 'express';
 import AuthenticationController from '../controllers/authentication-controller';
 import Controller from '../controllers/controller';
 import GameController from '../controllers/game-controller';
+import MapController from '../controllers/map-controller';
 import UserController from '../controllers/user-controller';
 import Service from './service';
 import ServiceContainer from './service-container';
@@ -27,7 +28,8 @@ export default class ControllerService extends Service {
     this.controllers = [
       new AuthenticationController(container),
       new UserController(container),
-      new GameController(container)
+      new GameController(container),
+      new MapController(container)
     ];
   }
 
