@@ -1,6 +1,7 @@
 import mongooseToJson from '@meanie/mongoose-to-json';
 import { Document, Model, Mongoose, Schema } from 'mongoose';
 import ServiceContainer from '../services/service-container';
+import { MapInstance } from './map-model';
 import Attributes from './model';
 import { UserInstance } from './user-model';
 
@@ -10,6 +11,7 @@ import { UserInstance } from './user-model';
 export interface GameAttributes extends Attributes {
   status?: Status;
   code?: string;
+  map: MapInstance;
   players: UserInstance[];
 }
 
@@ -53,6 +55,11 @@ function createGameSchema(container: ServiceContainer) {
     code: {
       type: Schema.Types.String,
       default: null
+    },
+    map: {
+      type: Schema.Types.ObjectId,
+      ref: 'Map',
+      required: [true, 'Map is required']
     },
     players: {
       type: [{
