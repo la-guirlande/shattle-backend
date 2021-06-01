@@ -1,14 +1,14 @@
-import { UserInstance } from '../models/user-model';
+import { UserInstance } from '../../models/user-model';
 import { Entity } from './entity';
+import { Storable } from '../storable';
 
 /**
  * Player class.
  * 
  * A player is an entity managed by an user.
  */
-export class Player extends Entity {
+export class Player extends Entity implements Storable {
 
-  public readonly id: string;
   private readonly model: UserInstance;
 
   /**
@@ -17,8 +17,11 @@ export class Player extends Entity {
    * @param model User model
    */
   public constructor(model: UserInstance) {
-    super();
-    this.id = model.id;
+    super(model.id);
     this.model = model;
+  }
+
+  public async save(): Promise<void> {
+    await this.model.save();
   }
 }
