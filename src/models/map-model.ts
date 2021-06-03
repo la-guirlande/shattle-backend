@@ -10,6 +10,7 @@ export interface MapAttributes extends Attributes {
   name: string;
   config: ConfigAttributes;
   tilesets: TilesetAttributes[];
+  maxPlayers: number;
 }
 
 /**
@@ -117,6 +118,12 @@ function createMapSchema() {
         validator: (tilesets: TilesetAttributes[]) => tilesets.length > 0,
         message: 'Map tilesets are required'
       }
+    },
+    maxPlayers: {
+      type: Schema.Types.Number,
+      required: [true, 'Max players is required'],
+      min: [2, 'Max players must be >= 2'],
+      max: [2, 'Max players must be <= 5']
     }
   }, {
     timestamps: false,
