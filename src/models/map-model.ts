@@ -11,6 +11,8 @@ export interface MapAttributes extends Attributes {
   config: ConfigAttributes;
   tilesets: TilesetAttributes[];
   maxPlayers: number;
+  mapTiles: TileAttributes[];
+  tilesetTiles: TileAttributes[];
 }
 
 /**
@@ -36,6 +38,17 @@ export interface ConfigAttributes {
 export interface TilesetAttributes {
   name: string;
   data: string;
+}
+
+/**
+ * Tile attributes.
+ */
+export interface TileAttributes {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 /**
@@ -129,6 +142,29 @@ function createMapSchema() {
     timestamps: false,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+  });
+  schema.virtual('mapTiles').get(function(this: MapInstance) {
+    const { config } = this;
+    const tiles: TileAttributes[] = [];
+    let id = 1;
+    for (let y = 0; y < config.height * config.tileheight; y += config.tileheight) {
+      for (let x = 0; x < config.width * config.tilewidth; x += config.tilewidth) {
+        tiles.push({ id: id++, x, y, width: config.tilewidth, height: config.tileheight });
+      }
+    }
+    return tiles;
+  });
+  schema.virtual('tilesetTiles').get(function(this: MapInstance) {
+    const tiles: TileAttributes[] = [];
+    for (const tileset of this.config.tilesets) {
+      let gid = tileset.firstgid;
+      for (let y = 0; y < tileset.imageheight; y += tileset.tileheight) {
+        for (let x = 0; x < tileset.imagewidth; x += tileset.tilewidth) {
+          tiles.push({ id: gid++, x, y, width: tileset.tilewidth, height: tileset.tileheight });
+        }
+      }
+    }
+    return tiles;
   });
   schema.plugin(mongooseToJson);
   return schema;
