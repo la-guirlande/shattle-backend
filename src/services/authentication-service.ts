@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { UserInstance } from '../models/user-model';
 import Service from './service';
 import ServiceContainer from './service-container';
 import { AccessTokenData } from './token-service';
@@ -17,6 +18,21 @@ export default class AuthenticationService extends Service {
    */
   public constructor(container: ServiceContainer) {
     super(container);
+  }
+
+  /**
+   * Authenticates an user with an access token.
+   * 
+   * @param accessToken Access token
+   * @returns Authenticated user, or `null` if the token is invalid
+   */
+  public async authenticate(accessToken: string): Promise<UserInstance> {
+    try {
+      const data = await this.container.tokens.decode<AccessTokenData>(accessToken, process.env.ACCESS_TOKEN_KEY);
+      return await this.container.db.users.findById(data.userId);
+    } catch (err) {
+      return null;
+    }
   }
 
   /**

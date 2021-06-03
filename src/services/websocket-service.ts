@@ -62,7 +62,123 @@ export default class WebsocketService extends Service {
           this.logger.info(`Websocket disconnected : ${socket.handshake.address}`);
       });
 
-      // Websocket logic here
+      socket.on(Event.GAME_JOIN, async ({ code, accessToken }: GameJoinClientToServerEvent) => {
+        try {
+          const user = await this.container.auth.authenticate(accessToken);
+          if (user == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'User not found'
+            } as ErrorServerToClientEvent);
+          }
+          const game = await this.db.games.findOne({ code }).populate('map').populate('players');
+          if (game == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: `Game not found with code ${code}`
+            } as ErrorServerToClientEvent);
+          }
+          if (!game.players.map(player => player.id).includes(user.id)) {
+            game.players.push(user);
+            await game.save();
+          }
+          socket.join(game.id);
+          return socket.emit(Event.GAME_JOIN, { gameId: game.id } as GameJoinServerToClientEvent);
+        } catch (err) {
+          return socket.emit(Event.ERROR, {
+            error: Error.SERVER_ERROR,
+            description: err
+          } as ErrorServerToClientEvent);
+        }
+      });
+
+      socket.on(Event.GAME_START, async ({ userId, gameId }: GameStartClientToServerEvent) => {
+        try {
+          if (!socket.rooms.has(gameId)) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'You are not playing in this game'
+            } as ErrorServerToClientEvent);
+          }
+          const user = await this.db.users.findById(userId);
+          if (user == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'User not found'
+            } as ErrorServerToClientEvent);
+          }
+          const game = await this.db.games.findById(gameId);
+          if (game == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'Game not found'
+            } as ErrorServerToClientEvent);
+          }
+          return socket.emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
+        } catch (err) {
+          return socket.emit(Event.ERROR, {
+            error: Error.SERVER_ERROR,
+            description: err
+          } as ErrorServerToClientEvent);
+        }
+      });
     });
   }
+}
+
+/**
+ * Websocket events enum.
+ */
+enum Event {
+  GAME_JOIN = 'game.join',
+  GAME_START = 'game.start',
+  ERROR = 'error'
+}
+
+/**
+ * Websocket errors enum.
+ */
+// TODO Fill and use this enum
+enum Error {
+  SERVER_ERROR = 0,
+  GAME_NOT_FOUND = 1,
+  USER_NOT_FOUND = 2
+}
+
+/**
+ * Event when player is joining a game.
+ */
+interface GameJoinClientToServerEvent {
+  accessToken: string;
+  code: string;
+}
+
+/**
+ * Event when server accepts joining game.
+ */
+interface GameJoinServerToClientEvent {
+  gameId: string;
+}
+
+/**
+ * Event when player is starting game.
+ */
+interface GameStartClientToServerEvent {
+  userId: string;
+  gameId: string;
+}
+
+/**
+ * Event when server starts game.
+ */
+interface GameStartServerToClientEvent {
+  gameId: string;
+}
+
+/**
+ * Event when an error occurs.
+ */
+interface ErrorServerToClientEvent {
+  error: Error;
+  description?: string;
 }
