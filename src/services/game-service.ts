@@ -1,6 +1,4 @@
 import { Game } from '../logic/game/game';
-import { Map } from '../logic/maps/map';
-import { Player } from '../logic//entities/player';
 import { GameInstance } from '../models/game-model';
 import { MapInstance } from '../models/map-model';
 import { UserInstance } from '../models/user-model';
@@ -34,8 +32,9 @@ export default class GameService extends Service {
    * @returns Created game
    */
   public createGame(model: GameInstance, map: MapInstance, user: UserInstance): Game {
-    const game = new Game(this.container, model, new Map(map), new Player(user));
-    this.games.push(game);
-    return game;
+    // const game = new Game(this.container, model, new Map(map), new Player(user));
+    // this.games.push(game);
+    // return game;
+    return null;
   }
 }

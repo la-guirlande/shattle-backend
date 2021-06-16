@@ -2,6 +2,7 @@ import { Document, Model, Mongoose, Schema } from 'mongoose';
 import mongooseToJson from '@meanie/mongoose-to-json';
 import ServiceContainer from '../services/service-container';
 import Attributes from './model';
+import { GameInstance } from './game-model';
 
 /**
  * User attributes.
@@ -16,7 +17,14 @@ export interface UserAttributes extends Attributes {
 /**
  * User instance.
  */
-export interface UserInstance extends UserAttributes, Document {}
+export interface UserInstance extends UserAttributes, Document {
+  /**
+   * Gets user games.
+   * 
+   * @returns User games
+   */
+  games(): Promise<GameInstance[]>;
+}
 
 /**
  * Creates the user model.
@@ -65,6 +73,10 @@ function createUserSchema(container: ServiceContainer) {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+  });
+
+  schema.method('games', async function(this: UserInstance) {
+    return await container.db.games.find().where('players').in([this.id]);
   });
 
   // Password hash validation
