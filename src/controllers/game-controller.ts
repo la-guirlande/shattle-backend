@@ -83,7 +83,7 @@ export default class GameController extends Controller {
       }
       const map = await this.db.maps.findOne().skip(_.random(0, await this.db.maps.countDocuments() - 1, false));
       const game = await this.db.games.create({ players: [user], map });
-      this.container.game.createGame(game, map, user);
+      // this.container.game.createGame(game, map, user);
       return res.status(201).send({ id: game.id, code: game.code });
     } catch (err) {
       this.logger.error(err);
