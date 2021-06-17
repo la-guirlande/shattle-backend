@@ -13,6 +13,7 @@ export interface GameAttributes extends Attributes {
   code?: string;
   map: MapInstance;
   players: UserInstance[];
+  history?: History[];
 }
 
 /**
@@ -27,6 +28,50 @@ export enum Status {
   WAITING = 0,
   IN_PROGRESS = 1,
   FINISHED = 2
+}
+
+/**
+ * Game history.
+ */
+export interface History {
+  player: UserInstance;
+  actions: Action[];
+}
+
+/**
+ * Game history action.
+ */
+export interface Action {
+  type: ActionType;
+  to?: number;
+  spell?: Spell;
+  direction?: Direction;
+}
+
+/**
+ * Action type.
+ */
+export enum ActionType {
+  MOVE = 0,
+  SPELL = 1
+}
+
+/**
+ * Spell.
+ */
+export enum Spell {
+  BASIC = 0
+}
+
+/**
+ * Direction.
+ */
+export enum Direction {
+  SELF = 0,
+  NORTH = 1,
+  EAST = 2,
+  SOUTH = 3,
+  WEST = 4
 }
 
 /**
@@ -70,6 +115,11 @@ function createGameSchema(container: ServiceContainer) {
         validator: (players: UserInstance[]) => players.length <= 5,
         message: 'Too many players (> 5)'
       }
+    },
+    history: {
+      type: [{
+        type: createHistorySchema()
+      }]
     }
   }, {
     timestamps: true,
@@ -92,5 +142,61 @@ function createGameSchema(container: ServiceContainer) {
     return next();
   });
   schema.plugin(mongooseToJson);
+  return schema;
+}
+
+/**
+ * Creates the game history subschema.
+ * 
+ * @param container Services container
+ * @returns Game history subschema
+ */
+function createHistorySchema() {
+  const schema = new Schema({
+    player: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    actions: {
+      type: [{
+        type: createActionSchema()
+      }]
+    }
+  }, {
+    timestamps: false
+  });
+  return schema;
+}
+
+/**
+ * Creates the game history action subschema.
+ * 
+ * @param container Services container
+ * @returns Game history action subschema
+ */
+function createActionSchema() {
+  const schema = new Schema({
+    type: {
+      type: Schema.Types.Number,
+      enum: [ActionType.MOVE, ActionType.SPELL],
+      required: [true, 'Action type is required']
+    },
+    to: {
+      type: Schema.Types.Number,
+      default: null
+    },
+    spell: {
+      type: Schema.Types.Number,
+      enum: [Spell.BASIC],
+      default: null
+    },
+    direction: {
+      type: Schema.Types.Number,
+      enum: [Direction.SELF, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST],
+      default: null
+    }
+  }, {
+    timestamps: false
+  });
   return schema;
 }
