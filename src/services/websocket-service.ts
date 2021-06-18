@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import { Action, History } from '../models/game-model';
 import Service from './service';
 import ServiceContainer from './service-container';
 
@@ -114,7 +115,41 @@ export default class WebsocketService extends Service {
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
-          return socket.emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
+          return socket.to(gameId).emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
+        } catch (err) {
+          return socket.emit(Event.ERROR, {
+            error: Error.SERVER_ERROR,
+            description: err
+          } as ErrorServerToClientEvent);
+        }
+      });
+
+      socket.on(Event.PLAYER_ROUND, async ({ userId, gameId, actions }: PlayerRoundClientToServerEvent) => {
+        try {
+          if (!socket.rooms.has(gameId)) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'You are not playing in this game'
+            } as ErrorServerToClientEvent);
+          }
+          const user = await this.db.users.findById(userId);
+          if (user == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'User not found'
+            } as ErrorServerToClientEvent);
+          }
+          const game = await this.db.games.findById(gameId).populate('history').populate('history.actions');
+          if (game == null) {
+            return socket.emit(Event.ERROR, {
+              error: Error.SERVER_ERROR,
+              description: 'Game not found'
+            } as ErrorServerToClientEvent);
+          }
+          const history = { player: user, actions };
+          game.history.push(history);
+          await game.save();
+          socket.broadcast.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);
         } catch (err) {
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
@@ -132,6 +167,7 @@ export default class WebsocketService extends Service {
 enum Event {
   GAME_JOIN = 'game.join',
   GAME_START = 'game.start',
+  PLAYER_ROUND = 'player.action',
   ERROR = 'error'
 }
 
@@ -173,6 +209,22 @@ interface GameStartClientToServerEvent {
  */
 interface GameStartServerToClientEvent {
   gameId: string;
+}
+
+/**
+ * Event when player is making a round.
+ */
+interface PlayerRoundClientToServerEvent {
+  userId: string;
+  gameId: string;
+  actions: Action[];
+}
+
+/**
+ * Event when a round is valid.
+ */
+interface PlayerRoundServerToClientEvent {
+  history: History;
 }
 
 /**
