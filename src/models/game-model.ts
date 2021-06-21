@@ -13,6 +13,8 @@ export interface GameAttributes extends Attributes {
   code?: string;
   map: MapInstance;
   players: UserInstance[];
+  author?: UserInstance;
+  currentPlayer?: UserInstance;
   history?: History[];
 }
 
@@ -125,6 +127,20 @@ function createGameSchema(container: ServiceContainer) {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+  });
+  schema.virtual('author').get(function(this: GameInstance) {
+    return this.players[0];
+  });
+  schema.virtual('currentPlayer').get(function(this: GameInstance) {
+    if (this.history.length === 0) {
+      return this.players[0];
+    }
+    const lastPlayer = this.history[this.history.length - 1].player;
+    const lastPlayerIndex = this.players.map(player => player.id).indexOf(lastPlayer.id);
+    if (lastPlayer.id === this.players[this.players.length - 1].id) {
+      return this.players[0];
+    }
+    return this.players[lastPlayerIndex + 1];
   });
   schema.pre('save', async function(this: GameInstance, next) {
     if (this.isNew) {
