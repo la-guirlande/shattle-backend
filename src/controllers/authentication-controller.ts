@@ -31,10 +31,15 @@ export default class AuthenticationController extends Controller {
    */
   public async accessToken(req: Request, res: Response): Promise<Response> {
     try {
-      const refreshTokenData = await this.container.tokens.decode<RefreshTokenData>(req.body.refresh_token, process.env.REFRESH_TOKEN_KEY)
-      const user = await this.db.users.findById(refreshTokenData.userId);
+      if (req.body.refresh_token == null) {
+        return res.status(401).json(this.container.errors.formatErrors({
+          error: 'access_denied',
+          error_description: 'Invalid refresh token'
+        }));
+      }
+      const user = await this.db.users.findOne({ refreshToken: req.body.refresh_token });
       if (user == null) {
-        return res.status(404).json(this.container.errors.formatErrors({
+        return res.status(401).json(this.container.errors.formatErrors({
           error: 'access_denied',
           error_description: 'Invalid refresh token'
         }));
