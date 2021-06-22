@@ -115,7 +115,7 @@ export default class WebsocketService extends Service {
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
-          return socket.to(gameId).emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
+          return this.srv.to(gameId).emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
         } catch (err) {
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
@@ -149,7 +149,7 @@ export default class WebsocketService extends Service {
           const history = { player: user, actions };
           game.history.push(history);
           await game.save();
-          socket.broadcast.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);
+          this.srv.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);
         } catch (err) {
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
