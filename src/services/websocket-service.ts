@@ -84,7 +84,7 @@ export default class WebsocketService extends Service {
             await game.save();
           }
           socket.join(game.id);
-          return socket.emit(Event.GAME_JOIN, { gameId: game.id } as GameJoinServerToClientEvent);
+          return this.srv.to(game.id).emit(Event.GAME_JOIN, { gameId: game.id, userId: user.id } as GameJoinServerToClientEvent);
         } catch (err) {
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
@@ -196,6 +196,7 @@ interface GameJoinClientToServerEvent {
  */
 interface GameJoinServerToClientEvent {
   gameId: string;
+  userId: string;
 }
 
 /**
