@@ -13,6 +13,7 @@ import SchedulerService from './scheduler-service';
 import ServerService from './server-service';
 import TokenService from './token-service';
 import WebsocketService from './websocket-service';
+import NotificationService from './notification-service';
 
 /**
  * Services container class.
@@ -53,6 +54,7 @@ export default class ServiceContainer {
   private _scheduler: SchedulerService;
   private _websocket: WebsocketService;
   private _game: GameService;
+  private _notif: NotificationService;
 
   /**
    * Creates a new services container.
@@ -73,6 +75,7 @@ export default class ServiceContainer {
     this._scheduler = null;
     this._websocket = null;
     this._game = null;
+    this._notif = null;
     this.env.load(); // Autoload environment
   }
 
@@ -194,5 +197,13 @@ export default class ServiceContainer {
       this.logger.info('Loaded game service');
     }
     return this._game;
+  }
+
+  public get notif(): NotificationService {
+    if (!this._notif) {
+      this._notif = new NotificationService(this);
+      this.logger.info('Loaded notifications service');
+    }
+    return this._notif;
   }
 }
