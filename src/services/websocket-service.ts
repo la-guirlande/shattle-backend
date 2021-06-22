@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { Action, History } from '../models/game-model';
+import { Action, History, Status } from '../models/game-model';
 import Service from './service';
 import ServiceContainer from './service-container';
 
@@ -115,6 +115,8 @@ export default class WebsocketService extends Service {
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
+          game.status = Status.IN_PROGRESS;
+          await game.save();
           return this.srv.to(gameId).emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
         } catch (err) {
           return socket.emit(Event.ERROR, {
