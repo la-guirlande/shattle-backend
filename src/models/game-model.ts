@@ -1,7 +1,8 @@
 import mongooseToJson from '@meanie/mongoose-to-json';
 import { Document, Model, Mongoose, Schema } from 'mongoose';
 import ServiceContainer from '../services/service-container';
-import { MapInstance } from './map-model';
+import { CharacterInstance } from './character-model';
+import { MapInstance, TileAttributes } from './map-model';
 import Attributes from './model';
 import { UserInstance } from './user-model';
 
@@ -12,16 +13,19 @@ export interface GameAttributes extends Attributes {
   status?: Status;
   code?: string;
   map: MapInstance;
-  players: UserInstance[];
-  author?: UserInstance;
-  currentPlayer?: UserInstance;
+  players?: Player[];
+  author?: Player;
+  currentPlayer?: Player;
   history?: History[];
 }
 
 /**
  * Game instance.
  */
-export interface GameInstance extends GameAttributes, Document {}
+export interface GameInstance extends GameAttributes, Document {
+  getPlayer: (user: UserInstance | string) => Player;
+  addPlayer: (user: UserInstance) => Promise<void>;
+}
 
 /**
  * Game status enum.
@@ -33,10 +37,18 @@ export enum Status {
 }
 
 /**
+ * Player.
+ */
+export interface Player {
+  user: UserInstance;
+  character: CharacterInstance;
+}
+
+/**
  * Game history.
  */
 export interface History {
-  player: UserInstance;
+  player: Player;
   actions: Action[];
 }
 
@@ -45,7 +57,7 @@ export interface History {
  */
 export interface Action {
   type: ActionType;
-  to?: number;
+  to?: TileAttributes;
   spell?: Spell;
   direction?: Direction;
 }
@@ -110,11 +122,10 @@ function createGameSchema(container: ServiceContainer) {
     },
     players: {
       type: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
+        type: createPlayerSchema()
       }],
       validate: {
-        validator: (players: UserInstance[]) => players.length <= 5,
+        validator: (players: Player[]) => players.length <= 5,
         message: 'Too many players (> 5)'
       }
     },
@@ -136,11 +147,23 @@ function createGameSchema(container: ServiceContainer) {
       return this.players[0];
     }
     const lastPlayer = this.history[this.history.length - 1].player;
-    const lastPlayerIndex = this.players.map(player => player.id).indexOf(lastPlayer.id);
-    if (lastPlayer.id === this.players[this.players.length - 1].id) {
+    const lastPlayerIndex = this.players.map(player => player.user.id).indexOf(lastPlayer.user.id);
+    if (lastPlayer.user.id === this.players[this.players.length - 1].user.id) {
       return this.players[0];
     }
     return this.players[lastPlayerIndex + 1];
+  });
+  schema.method('getPlayer', function(this: GameInstance, user: UserInstance | string) {
+    if (typeof user !== 'string') {
+      user = user.id;
+    }
+    return this.players.find(player => player.user.id === user);
+  });
+  schema.method('addPlayer', async function(this: GameInstance, user: UserInstance) {
+    this.players.push({
+      user, character: await container.db.characters.findOne()
+    });
+    await this.save();
   });
   schema.pre('save', async function(this: GameInstance, next) {
     if (this.isNew) {
@@ -162,6 +185,30 @@ function createGameSchema(container: ServiceContainer) {
 }
 
 /**
+ * Creates the game player subschema.
+ * 
+ * @param container Services container
+ * @returns Game player subschema
+ */
+ function createPlayerSchema() {
+  const schema = new Schema({
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    character: {
+      type: Schema.Types.ObjectId,
+      ref: 'Character'
+    }
+  }, {
+    _id: false,
+    id: false,
+    timestamps: false
+  });
+  return schema;
+}
+
+/**
  * Creates the game history subschema.
  * 
  * @param container Services container
@@ -170,8 +217,7 @@ function createGameSchema(container: ServiceContainer) {
 function createHistorySchema() {
   const schema = new Schema({
     player: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
+      type: createPlayerSchema()
     },
     actions: {
       type: [{
@@ -198,7 +244,7 @@ function createActionSchema() {
       required: [true, 'Action type is required']
     },
     to: {
-      type: Schema.Types.Number,
+      type: createTileSchema(),
       default: null
     },
     spell: {
@@ -210,6 +256,32 @@ function createActionSchema() {
       type: Schema.Types.Number,
       enum: [Direction.SELF, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST],
       default: null
+    }
+  }, {
+    timestamps: false
+  });
+  return schema;
+}
+
+/**
+ * Creates the game history action tile subschema.
+ * 
+ * @param container Services container
+ * @returns Game history action tile subschema
+ */
+function createTileSchema() {
+  const schema = new Schema({
+    x: {
+      type: Schema.Types.Number
+    },
+    y: {
+      type: Schema.Types.Number
+    },
+    width: {
+      type: Schema.Types.Number
+    },
+    height: {
+      type: Schema.Types.Number
     }
   }, {
     timestamps: false

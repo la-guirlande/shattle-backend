@@ -76,7 +76,7 @@ function createUserSchema(container: ServiceContainer) {
   });
 
   schema.method('games', async function(this: UserInstance) {
-    return await container.db.games.find().where('players').in([this.id]).populate('players').populate('history.players');
+    return await container.db.games.find().where('players.user').in([this.id]).populate('players.user').populate('players.character').populate('history.players');
   });
 
   // Password hash validation

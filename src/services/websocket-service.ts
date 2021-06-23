@@ -1,5 +1,6 @@
+import _ from 'lodash';
 import { Server, Socket } from 'socket.io';
-import { Action, History, Status } from '../models/game-model';
+import { Action, ActionType, History, Status } from '../models/game-model';
 import Service from './service';
 import ServiceContainer from './service-container';
 
@@ -72,16 +73,15 @@ export default class WebsocketService extends Service {
               description: 'User not found'
             } as ErrorServerToClientEvent);
           }
-          const game = await this.db.games.findOne({ code }).populate('map').populate('players');
+          const game = await this.db.games.findOne({ code }).populate('map').populate('players.user').populate('players.character');
           if (game == null) {
             return socket.emit(Event.ERROR, {
               error: Error.SERVER_ERROR,
               description: `Game not found with code ${code}`
             } as ErrorServerToClientEvent);
           }
-          if (!game.players.map(player => player.id).includes(user.id)) {
-            game.players.push(user);
-            await game.save();
+          if (!game.players.map(player => player.user.id).includes(user.id)) {
+            await game.addPlayer(user);
           }
           socket.join(game.id);
           return this.srv.to(game.id).emit(Event.GAME_JOIN, { gameId: game.id, userId: user.id } as GameJoinServerToClientEvent);
@@ -108,17 +108,29 @@ export default class WebsocketService extends Service {
               description: 'User not found'
             } as ErrorServerToClientEvent);
           }
-          const game = await this.db.games.findById(gameId);
+          const game = await this.db.games.findById(gameId).populate('map').populate('history.');
           if (game == null) {
             return socket.emit(Event.ERROR, {
               error: Error.SERVER_ERROR,
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
+          for (const player of game.players) {
+            game.history.push({
+              player,
+              actions: [{
+                type: ActionType.MOVE,
+                to: game.map.mapTiles[_.random(0, game.map.mapTiles.length - 1)]
+              }]
+            });
+          }
           game.status = Status.IN_PROGRESS;
+          game.markModified('history');
+          game.markModified('history.actions');
           await game.save();
           return this.srv.to(gameId).emit(Event.GAME_START, { gameId } as GameStartServerToClientEvent); // TODO Starts the game
         } catch (err) {
+          this.logger.error('Error on websocket event', Event.GAME_START, ':', err);
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
             description: err
@@ -148,7 +160,7 @@ export default class WebsocketService extends Service {
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
-          const history = { player: user, actions };
+          const history = { player: game.getPlayer(user), actions };
           game.history.push(history);
           await game.save();
           this.srv.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);

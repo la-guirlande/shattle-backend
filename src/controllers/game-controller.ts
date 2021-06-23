@@ -50,7 +50,7 @@ export default class GameController extends Controller {
    */
   public async getHandler(req: Request, res: Response): Promise<Response> {
     try {
-      const game = await this.db.games.findById(req.params.id).populate('map').populate('players');
+      const game = await this.db.games.findById(req.params.id).populate('map').populate('players.user').populate('players.character');
       if (game == null) {
         return res.status(404).send(this.container.errors.formatErrors({
           error: 'not_found',
@@ -82,7 +82,8 @@ export default class GameController extends Controller {
         }));
       }
       const map = await this.db.maps.findOne().skip(_.random(0, await this.db.maps.countDocuments() - 1, false));
-      const game = await this.db.games.create({ players: [user], map });
+      const game = await this.db.games.create({ map });
+      await game.addPlayer(user);
       // this.container.game.createGame(game, map, user);
       return res.status(201).send({ id: game.id, code: game.code });
     } catch (err) {
