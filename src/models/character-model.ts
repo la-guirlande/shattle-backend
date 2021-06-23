@@ -43,7 +43,9 @@ function createCharacterSchema(container: ServiceContainer) {
             unique: [true, 'Name already exists']
         },
         img: {
-            type: Schema.Types.String
+            type: Schema.Types.String,
+            required: [true, 'Image is required'],
+            match: [/(data:image\/png+;base64[^"]+)/i, 'Invalid image data format']
         }
     }, {
         timestamps: true,
@@ -55,4 +57,3 @@ function createCharacterSchema(container: ServiceContainer) {
 
     return schema;
 }
- 
