@@ -2,7 +2,7 @@ import mongooseToJson from '@meanie/mongoose-to-json';
 import { Document, Model, Mongoose, Schema } from 'mongoose';
 import ServiceContainer from '../services/service-container';
 import { CharacterInstance } from './character-model';
-import { MapInstance } from './map-model';
+import { MapInstance, TileAttributes } from './map-model';
 import Attributes from './model';
 import { UserInstance } from './user-model';
 
@@ -57,7 +57,7 @@ export interface History {
  */
 export interface Action {
   type: ActionType;
-  to?: number;
+  to?: TileAttributes;
   spell?: Spell;
   direction?: Direction;
 }
@@ -244,7 +244,7 @@ function createActionSchema() {
       required: [true, 'Action type is required']
     },
     to: {
-      type: Schema.Types.Number,
+      type: createTileSchema(),
       default: null
     },
     spell: {
@@ -256,6 +256,32 @@ function createActionSchema() {
       type: Schema.Types.Number,
       enum: [Direction.SELF, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST],
       default: null
+    }
+  }, {
+    timestamps: false
+  });
+  return schema;
+}
+
+/**
+ * Creates the game history action tile subschema.
+ * 
+ * @param container Services container
+ * @returns Game history action tile subschema
+ */
+function createTileSchema() {
+  const schema = new Schema({
+    x: {
+      type: Schema.Types.Number
+    },
+    y: {
+      type: Schema.Types.Number
+    },
+    width: {
+      type: Schema.Types.Number
+    },
+    height: {
+      type: Schema.Types.Number
     }
   }, {
     timestamps: false
