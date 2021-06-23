@@ -1,6 +1,7 @@
 import { Application } from 'express';
 import AuthenticationController from '../controllers/authentication-controller';
 import Controller from '../controllers/controller';
+import CharacterController from '../controllers/character-controller';
 import GameController from '../controllers/game-controller';
 import MapController from '../controllers/map-controller';
 import UserController from '../controllers/user-controller';
@@ -29,7 +30,8 @@ export default class ControllerService extends Service {
       new AuthenticationController(container),
       new UserController(container),
       new GameController(container),
-      new MapController(container)
+      new MapController(container),
+      new CharacterController(container)
     ];
   }
 
