@@ -72,16 +72,15 @@ export default class WebsocketService extends Service {
               description: 'User not found'
             } as ErrorServerToClientEvent);
           }
-          const game = await this.db.games.findOne({ code }).populate('map').populate('players');
+          const game = await this.db.games.findOne({ code }).populate('map').populate('players.user').populate('players.character');
           if (game == null) {
             return socket.emit(Event.ERROR, {
               error: Error.SERVER_ERROR,
               description: `Game not found with code ${code}`
             } as ErrorServerToClientEvent);
           }
-          if (!game.players.map(player => player.id).includes(user.id)) {
-            game.players.push(user);
-            await game.save();
+          if (!game.players.map(player => player.user.id).includes(user.id)) {
+            await game.addPlayer(user);
           }
           socket.join(game.id);
           return this.srv.to(game.id).emit(Event.GAME_JOIN, { gameId: game.id, userId: user.id } as GameJoinServerToClientEvent);
@@ -148,7 +147,7 @@ export default class WebsocketService extends Service {
               description: 'Game not found'
             } as ErrorServerToClientEvent);
           }
-          const history = { player: user, actions };
+          const history = { player: game.getPlayer(user), actions };
           game.history.push(history);
           await game.save();
           this.srv.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);
