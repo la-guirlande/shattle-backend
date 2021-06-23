@@ -34,7 +34,7 @@ export default class AuthenticationController extends Controller {
       if (req.body.refresh_token == null) {
         return res.status(401).json(this.container.errors.formatErrors({
           error: 'access_denied',
-          error_description: 'Invalid refresh token'
+          error_description: 'Missing refresh token'
         }));
       }
       const user = await this.db.users.findOne({ refreshToken: req.body.refresh_token });
