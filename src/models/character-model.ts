@@ -55,3 +55,4 @@ function createCharacterSchema(container: ServiceContainer) {
 
     return schema;
 }
+ 
