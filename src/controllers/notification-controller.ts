@@ -19,8 +19,15 @@ export default class NotificationController extends Controller {
     public constructor(container: ServiceContainer) {
         super(container, '/notifications');
         this.registerEndpoint({ method: 'POST', uri: '/subscribe', handlers: this.createHandler });
+        this.registerEndpoint({ method: 'GET', uri: '/send/:id', handlers: this.getHandler });
     }
 
+    /**
+     * vapidDetails
+     */
+    public vapidDetails() {
+        webpush.setVapidDetails(process.env.WEB_PUSH_CONTACT, process.env.PUBLIC_VAPID_KEY, process.env.PRIVATE_VAPID_KEY)
+    }
     /**
      * Creates a new notification.
      * 
@@ -30,19 +37,24 @@ export default class NotificationController extends Controller {
      * @param res Express response
      * @async
      */
-    public async createHandler(req: Request, res: Response): Promise<Response> {
+    public async createHandler(req: Request, res: Response){
+        
+    }
+
+    public async getHandler(req: Request, res: Response): Promise<Response> {
         try {
             const subscription = req.body
-            console.log(subscription)
             const payload = JSON.stringify({
                 title: 'Shattle',
                 body: 'A votre tour de jouer',
             })
-            webpush.sendNotification(subscription, payload)
+            this.vapidDetails()
+            await webpush.sendNotification(subscription, payload)
             return res.status(200).json({ 'success': true })
         }
         catch (error) {
             return res.status(500).send(this.container.errors.formatServerError());
         }
+
     }
 }
