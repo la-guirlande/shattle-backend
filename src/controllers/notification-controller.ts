@@ -10,7 +10,7 @@ import webpush from 'web-push';
  * Root path : `/games`
  */
 export default class NotificationController extends Controller {
-
+    private subscriptions: any[]
     /**
      * Creates a new games controller.
      * 
@@ -20,6 +20,7 @@ export default class NotificationController extends Controller {
         super(container, '/notifications');
         this.registerEndpoint({ method: 'POST', uri: '/subscribe', handlers: this.createHandler });
         this.registerEndpoint({ method: 'GET', uri: '/send/:id', handlers: this.getHandler });
+        this.subscriptions = []
     }
 
     /**
@@ -37,19 +38,27 @@ export default class NotificationController extends Controller {
      * @param res Express response
      * @async
      */
-    public async createHandler(req: Request, res: Response){
-        
+    public async createHandler(req: Request, res: Response) {
+        console.log(this.subscriptions.length, req.body);
+        this.subscriptions.push(req.body);
+        res.status(200).json({ "status": "Ok" });
     }
 
     public async getHandler(req: Request, res: Response): Promise<Response> {
         try {
-            const subscription = req.body
+            const id = parseInt(req.params.id);
+            if (id === NaN || id < 0 || id > this.subscriptions.length) {
+                console.error("Could not send notification to id " + id);
+                res.status(400).json({ "status": "Bad request" });
+                return;
+            }
             const payload = JSON.stringify({
                 title: 'Shattle',
                 body: 'A votre tour de jouer',
             })
             this.vapidDetails()
-            await webpush.sendNotification(subscription, payload)
+            await webpush.sendNotification(this.subscriptions[id], JSON.stringify(payload));
+            res.status(200).json({ "status": "OK" });
             return res.status(200).json({ 'success': true })
         }
         catch (error) {
