@@ -163,7 +163,7 @@ export default class WebsocketService extends Service {
           const history = { player: game.getPlayer(user), actions };
           game.history.push(history);
           await game.save();
-          this.srv.to(gameId).emit(Event.PLAYER_ROUND, { history } as PlayerRoundServerToClientEvent);
+          this.srv.to(gameId).emit(Event.PLAYER_ROUND, { gameId, history } as PlayerRoundServerToClientEvent);
         } catch (err) {
           return socket.emit(Event.ERROR, {
             error: Error.SERVER_ERROR,
@@ -239,6 +239,7 @@ interface PlayerRoundClientToServerEvent {
  * Event when a round is valid.
  */
 interface PlayerRoundServerToClientEvent {
+  gameId: string;
   history: History;
 }
 
