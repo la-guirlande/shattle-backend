@@ -1,4 +1,5 @@
-import mongooseToJson from '@meanie/mongoose-to-json';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const mongooseToJson = require('@meanie/mongoose-to-json');
 import { Document, Model, Mongoose, Schema } from 'mongoose';
 import ServiceContainer from '../services/service-container';
 import { CharacterInstance } from './character-model';
@@ -105,7 +106,7 @@ export default function createModel(container: ServiceContainer, mongoose: Mongo
  * @returns Game schema
  */
 function createGameSchema(container: ServiceContainer) {
-  const schema = new Schema({
+  const schema = new Schema<GameInstance>({
     status: {
       type: Schema.Types.Number,
       enum: [Status.WAITING, Status.IN_PROGRESS, Status.FINISHED],
